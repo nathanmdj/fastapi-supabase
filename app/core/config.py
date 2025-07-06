@@ -1,5 +1,4 @@
 from typing import List, Optional
-from pydantic import AnyHttpUrl, validator
 from pydantic_settings import BaseSettings
 
 
@@ -19,16 +18,12 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
-    # CORS Configuration
-    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
+    # CORS Configuration - Simple string that gets split on comma
+    BACKEND_CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3001"
     
-    @validator("BACKEND_CORS_ORIGINS", pre=True)
-    def assemble_cors_origins(cls, v: str | List[str]) -> List[str] | str:
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
-        elif isinstance(v, (list, str)):
-            return v
-        raise ValueError(v)
+    @property
+    def cors_origins(self) -> List[str]:
+        return [origin.strip() for origin in self.BACKEND_CORS_ORIGINS.split(",")]
     
     # Environment
     ENVIRONMENT: str = "development"
