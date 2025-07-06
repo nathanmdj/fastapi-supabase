@@ -3,7 +3,7 @@ from supabase import Client
 
 from app.core.database import get_supabase_client
 from app.api.deps import get_current_user, get_current_active_user
-from app.schemas.user import UserResponse, UserProfile
+from app.schemas.user import UserResponse, UserProfile, LoginRequest, SignupRequest, AuthResponse
 from app.services.auth_service import AuthService
 
 router = APIRouter()
@@ -98,3 +98,49 @@ async def verify_user_token(
         "user_id": current_user["id"],
         "email": current_user["email"]
     }
+
+
+@router.post("/login", response_model=AuthResponse)
+async def login(
+    login_data: LoginRequest,
+    supabase: Client = Depends(get_supabase_client)
+):
+    try:
+        auth_service = AuthService(supabase)
+        result = auth_service.login(login_data.email, login_data.password)
+        return AuthResponse(**result)
+    except Exception as e:
+        if "Invalid login credentials" in str(e) or "Login failed" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=str(e)
+            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Login failed: {str(e)}"
+        )
+
+
+@router.post("/signup", response_model=AuthResponse)
+async def signup(
+    signup_data: SignupRequest,
+    supabase: Client = Depends(get_supabase_client)
+):
+    try:
+        auth_service = AuthService(supabase)
+        result = auth_service.signup(
+            signup_data.email, 
+            signup_data.password, 
+            signup_data.user_metadata
+        )
+        return AuthResponse(**result)
+    except Exception as e:
+        if "Signup failed" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Signup failed: {str(e)}"
+        )
