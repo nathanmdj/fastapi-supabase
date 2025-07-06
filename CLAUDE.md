@@ -77,11 +77,24 @@ uv run black . && uv run isort . && uv run flake8 && uv run mypy app/
 
 ### Authentication Flow
 
-The application uses **Supabase JWT tokens** for authentication:
+The application supports **dual authentication modes** with Supabase JWT tokens:
+
+**Mode 1: Frontend-Only Authentication (Recommended)**
 - Frontend (NextJS) authenticates users via Supabase Auth
 - Backend validates JWT tokens using `verify_supabase_jwt()` in `app/core/security.py`
 - User context is injected via dependency injection using `get_current_user()` in `app/api/deps.py`
-- No user creation/login endpoints - authentication is handled by the frontend/Supabase
+
+**Mode 2: Direct Backend Authentication**
+- Backend provides direct login/signup endpoints: `/api/v1/auth/login` and `/api/v1/auth/signup`
+- Returns JWT tokens and user data for immediate use
+- Supports user metadata during registration
+- Suitable for mobile apps or standalone backend usage
+
+**JWT Token Processing**:
+- Uses `PyJWT` library for secure token validation
+- Extracts complete user information from JWT payload
+- Reduces database calls by utilizing token data
+- Flexible email confirmation requirements
 
 ### Database Integration
 
@@ -104,6 +117,12 @@ The application uses **Supabase JWT tokens** for authentication:
 **Versioned API Design**:
 - Base URL: `/api/v1`
 - Authentication endpoints: `/api/v1/auth/*`
+  - `POST /api/v1/auth/login` - Direct user login
+  - `POST /api/v1/auth/signup` - User registration
+  - `GET /api/v1/auth/me` - Current user info
+  - `GET /api/v1/auth/profile` - User profile
+  - `PUT /api/v1/auth/profile` - Update profile
+  - `POST /api/v1/auth/verify-token` - Token verification
 - Algorithm endpoints: `/api/v1/algorithms/*`
 - All protected endpoints require `Authorization: Bearer <token>` header
 
@@ -112,7 +131,8 @@ The application uses **Supabase JWT tokens** for authentication:
 **Environment-Based Configuration**:
 - `app/core/config.py`: Centralized settings using Pydantic Settings
 - Required environment variables: `SUPABASE_URL`, `SUPABASE_KEY`, `JWT_SECRET_KEY`
-- CORS origins configurable via `BACKEND_CORS_ORIGINS`
+- CORS origins configurable via `BACKEND_CORS_ORIGINS` (comma-separated string)
+- Simplified configuration access with property-based methods
 
 ### Key Design Patterns
 
@@ -160,6 +180,8 @@ CREATE TABLE profiles (
 ## Integration Notes
 
 - **Frontend Integration**: Designed to work with NextJS frontend that handles Supabase auth
-- **Token Validation**: Uses Supabase JWT tokens, not custom token generation
+- **Dual Authentication**: Supports both frontend-only and direct backend authentication
+- **Token Validation**: Uses `PyJWT` library for secure JWT token processing
 - **CORS**: Configured for localhost development, update `BACKEND_CORS_ORIGINS` for production
 - **Error Handling**: Standardized HTTP exceptions with proper status codes and messages
+- **Modern Dependencies**: Uses `PyJWT` instead of `python-jose` for better security and performance

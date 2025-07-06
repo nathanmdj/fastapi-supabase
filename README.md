@@ -4,7 +4,8 @@ A modern FastAPI backend with Supabase integration designed for complex algorith
 
 ## 🚀 Features
 
-- **Authentication**: JWT-based authentication using Supabase Auth
+- **Dual Authentication**: JWT-based authentication with both frontend-only and direct backend modes
+- **Modern JWT Processing**: Secure token validation using PyJWT library
 - **Algorithm Processing**: Support for multiple algorithm types (Fibonacci, Prime Check, Sorting, Matrix Multiplication)
 - **Clean Architecture**: Separation of concerns with clear layer boundaries
 - **Type Safety**: Full type hints with Pydantic validation
@@ -138,6 +139,8 @@ uv run black . && uv run isort . && uv run flake8 && uv run mypy app/
 ## 📡 API Endpoints
 
 ### Authentication
+- `POST /api/v1/auth/login` - Direct user login
+- `POST /api/v1/auth/signup` - User registration
 - `GET /api/v1/auth/me` - Get current user info
 - `GET /api/v1/auth/profile` - Get user profile
 - `PUT /api/v1/auth/profile` - Update user profile
@@ -195,12 +198,37 @@ uv run black . && uv run isort . && uv run flake8 && uv run mypy app/
 
 ## 🔐 Authentication
 
-This backend uses Supabase Auth for user management. Authentication flow:
+This backend supports **dual authentication modes** with Supabase Auth:
 
+### Mode 1: Frontend-Only Authentication (Recommended)
 1. Users authenticate via your NextJS frontend using Supabase Auth
 2. Frontend sends requests with `Authorization: Bearer <supabase_jwt_token>` header
 3. Backend validates the JWT token and extracts user information
 4. Protected endpoints require valid authentication
+
+### Mode 2: Direct Backend Authentication
+1. Use the `/api/v1/auth/login` endpoint for direct user login
+2. Use the `/api/v1/auth/signup` endpoint for user registration
+3. Receive JWT tokens and user data directly from the backend
+4. Suitable for mobile apps or standalone backend usage
+
+#### Login Example:
+```bash
+curl -X POST "http://localhost:8000/api/v1/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "password123"}'
+```
+
+#### Signup Example:
+```bash
+curl -X POST "http://localhost:8000/api/v1/auth/signup" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com", 
+    "password": "password123",
+    "user_metadata": {"name": "John Doe"}
+  }'
+```
 
 ## 🏢 Production Deployment
 
