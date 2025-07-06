@@ -1,6 +1,5 @@
 from typing import Optional, Dict, Any
 from supabase import Client
-from gotrue import User
 
 
 class AuthService:
@@ -48,3 +47,74 @@ class AuthService:
             return False
         except Exception:
             return False
+    
+    def login(self, email: str, password: str) -> Dict[str, Any]:
+        try:
+            response = self.supabase.auth.sign_in_with_password({
+                "email": email,
+                "password": password
+            })
+            
+            if response.user and response.session:
+                return {
+                    "access_token": response.session.access_token,
+                    "token_type": "bearer",
+                    "expires_in": response.session.expires_in,
+                    "user": {
+                        "id": response.user.id,
+                        "email": response.user.email,
+                        "email_confirmed_at": response.user.email_confirmed_at,
+                        "created_at": response.user.created_at,
+                        "updated_at": response.user.updated_at,
+                        "user_metadata": response.user.user_metadata,
+                    }
+                }
+            raise Exception("Invalid login credentials")
+        except Exception as e:
+            raise Exception(f"Login failed: {str(e)}")
+    
+    def signup(self, email: str, password: str, user_metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        try:
+            signup_data = {
+                "email": email,
+                "password": password
+            }
+            if user_metadata:
+                signup_data["options"] = {"data": user_metadata}
+            
+            response = self.supabase.auth.sign_up(signup_data)
+            
+            if response.user:
+                # For signup, user might not have session immediately if email confirmation required
+                if response.session:
+                    return {
+                        "access_token": response.session.access_token,
+                        "token_type": "bearer", 
+                        "expires_in": response.session.expires_in,
+                        "user": {
+                            "id": response.user.id,
+                            "email": response.user.email,
+                            "email_confirmed_at": response.user.email_confirmed_at,
+                            "created_at": response.user.created_at,
+                            "updated_at": response.user.updated_at,
+                            "user_metadata": response.user.user_metadata,
+                        }
+                    }
+                else:
+                    # Return user data without session for email confirmation flow
+                    return {
+                        "access_token": "",
+                        "token_type": "bearer", 
+                        "expires_in": 0,
+                        "user": {
+                            "id": response.user.id,
+                            "email": response.user.email,
+                            "email_confirmed_at": response.user.email_confirmed_at,
+                            "created_at": response.user.created_at,
+                            "updated_at": response.user.updated_at,
+                            "user_metadata": response.user.user_metadata,
+                        }
+                    }
+            raise Exception(f"Signup failed: No user returned from Supabase")
+        except Exception as e:
+            raise Exception(f"Signup failed: {str(e)}")
